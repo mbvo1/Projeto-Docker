@@ -1,0 +1,5 @@
+FROM alpine:latest
+
+RUN apk add --no-cache curl
+
+CMD sh -c "while true; do curl http://servidor:8080; echo '--- Requisicao feita ---'; sleep 5; done"

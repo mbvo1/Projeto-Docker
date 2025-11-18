@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  redis-server:
+    image: "redis:alpine"
+    networks:
+      - minha-rede-interna
+
+  meu-site:
+    build: .  
+    ports:
+      - "5000:5000" 
+    depends_on:
+      - redis-server 
+    networks:
+      - minha-rede-interna
+
+
+  nginx:
+    image: "nginx:alpine"
+    ports:
+     - "8081:80" 
+    depends_on:
+      - meu-site 
+    command: [
+        "/bin/sh", "-c",
+        "echo 'events {} http { server { listen 80; location / { proxy_pass http://meu-site:5000; } } }' > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    ]
+    networks:
+      - minha-rede-interna
+
+networks:
+  minha-rede-interna:

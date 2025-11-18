@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  api-usuarios:
+    build: ./api_usuarios  
+    ports:
+      - "5001:5000"
+    networks:
+      - rede-microsservicos
+
+  site-frontend:
+    build: ./site_frontend 
+    ports:
+      - "8082:5000" 
+    depends_on:
+      - api-usuarios 
+    networks:
+      - rede-microsservicos
+
+networks:
+  rede-microsservicos:
