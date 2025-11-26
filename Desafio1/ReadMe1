@@ -1,26 +1,66 @@
-🐳 Desafio 1: Containers em Rede🎯 ObjetivoO objetivo deste desafio é implementar e demonstrar a comunicação funcional entre dois containers Docker totalmente isolados (Cliente e Servidor), utilizando uma rede Docker customizada (bridge)1111.💡 Arquitetura e SoluçãoA solução implementa uma arquitetura Cliente-Servidor simples, onde dois serviços são definidos em Dockerfiles separados e orquestrados manualmente em uma rede nomeada22.ComponenteTecnologiaPortaFunçãoServidorPython + Flask8080Executa o servidor web (app.py) e retorna a identificação do container (hostname/ID)33.ClienteAlpine Linux + cURLN/ARealiza requisições HTTP periódicas (a cada 5 segundos) ao Servidor44.Decisões TécnicasSeparação de Preocupações: Utilizamos Dockerfile.server e Dockerfile.client para isolar as dependências: o servidor precisa de Python/Flask, e o cliente precisa apenas de curl.Comunicação por Nome: A chave da comunicação é o DNS interno do Docker55. O Cliente envia a requisição para o nome do serviço (http://servidor:8080), e o Docker resolve esse nome para o IP do container Servidor dentro da rede customizada.⚙️ Explicação Detalhada do Funcionamento (Fluxo)Início do Servidor: O container Servidor é iniciado na rede customizada com o alias de rede servidor. O Flask inicia o servidor web na porta interna 80806666.Início do Cliente: O container Cliente é iniciado na mesma rede77. Seu comando (CMD) inicia um loop infinito que executa o curl a cada 5 segundos88.Resolução de Nome: A requisição do Cliente para http://servidor:8080 é interceptada pelo DNS da rede customizada, que direciona o tráfego para o IP do container Servidor9999.Logs: O Servidor registra o acesso, e o Cliente exibe a resposta (Olá do container ID: ...) em seus logs, demonstrando que a troca de mensagens está funcionando10.🛠️ Instruções de Execução Passo a PassoSiga os passos abaixo para construir, configurar a rede e executar os containers.1. Construção das ImagensExecute os comandos abaixo na raiz da pasta Desafio1:Bash# 1. Constrói a imagem do Servidor (usa Dockerfile.server)
+Desafio 1: Containers em Rede
+Objetivo
+O objetivo deste desafio é implementar e demonstrar a comunicação funcional entre dois containers Docker totalmente isolados (Cliente e Servidor), utilizando uma rede Docker customizada (bridge).
+
+Arquitetura e Solução
+A solução implementa uma arquitetura Cliente-Servidor simples. O Servidor utiliza Python/Flask e expõe a porta 8080, e o Cliente utiliza uma imagem Alpine com cURL para fazer requisições periódicas.
+
+Decisões Técnicas
+Comunicação por Nome: O Cliente usa o endereço http://servidor:8080. O DNS interno do Docker na rede customizada é responsável por resolver o nome servidor para o IP interno do Servidor.
+
+Instruções de Execução Passo a Passo
+Siga os comandos abaixo na raiz da pasta Desafio1 para configurar e executar o ambiente.
+
+1. Construção das Imagens
+Bash
+
+# 1. Constrói a imagem do Servidor (usa Dockerfile.server)
 docker build -t desafio1-server -f Dockerfile.server .
 
 # 2. Constrói a imagem do Cliente (usa Dockerfile.client)
 docker build -t desafio1-client -f Dockerfile.client .
-2. Criação da Rede CustomizadaCrie a rede Docker customizada, que é obrigatória para a comunicação por nome entre os serviços1111:Bash# Cria uma nova rede chamada 'desafio1-network'
+2. Criação da Rede Customizada
+Crie a rede Docker customizada antes de iniciar os containers:
+
+Bash
+
+# Cria uma nova rede chamada 'desafio1-network'
 docker network create desafio1-network
-3. Execução dos ContainersA. Iniciar o Container ServidorInicie o Servidor em modo detached (-d), conectando-o à rede e definindo o alias de serviço servidor. Este alias é o nome que o Cliente usa no comando curl1212.Bashdocker run -d \
+3. Execução dos Containers
+A. Iniciar o Container Servidor
+Inicie o Servidor em modo detached (-d), fornecendo o alias de serviço servidor (essencial para o Cliente):
+
+Bash
+
+docker run -d \
 --name servidor-app \
 --network desafio1-network \
 --network-alias servidor \
 desafio1-server
-B. Iniciar o Container Cliente (e Monitorar)Inicie o Cliente, conectando-o à mesma rede. Este container será executado em foreground e começará imediatamente a fazer requisições a cada 5 segundos13131313:Bash# O container do cliente fará requisições a cada 5 segundos e exibirá os logs.
+B. Iniciar o Container Cliente (e Monitorar)
+Inicie o Cliente, conectando-o à mesma rede. Este container será executado em foreground e começará imediatamente a fazer requisições a cada 5 segundos:
+
+Bash
+
+# O log exibirá a comunicação em tempo real.
 docker run --rm \
 --name cliente-app \
 --network desafio1-network \
 desafio1-client
-4. Demonstração e Teste (Logs)O log do Cliente exibirá mensagens como a seguir, comprovando que a comunicação está funcional e que a rede customizada está operando corretamente14:Ola do container ID: <ID_ALEATORIO_DO_SERVIDOR>
+4. Demonstração e Teste (Logs)
+Após executar o Cliente, você deve ver os seguintes logs repetidos, comprovando que a comunicação está funcional e a rede customizada está operando corretamente:
+
+Ola do container ID: <ID_ALEATORIO_DO_SERVIDOR>
 --- Requisicao feita ---
 Ola do container ID: <ID_ALEATORIO_DO_SERVIDOR>
 --- Requisicao feita ---
 ...
-5. Limpeza do AmbientePara finalizar e remover todos os recursos criados:Bash# 1. Parar os containers
+5. Limpeza do Ambiente
+Para finalizar e remover todos os recursos criados:
+
+Bash
+
+# 1. Parar os containers
 docker stop servidor-app cliente-app
 
 # 2. Remover os containers
