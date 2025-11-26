@@ -1,0 +1,85 @@
+Desafio 1: Containers em Rede
+# Objetivo
+Este desafio tem como objetivo principal demonstrar a comunicação funcional entre dois containers Docker totalmente isolados, utilizando uma rede Docker customizada (bridge).
+
+
+# Arquitetura e Solução
+A solução implementa uma arquitetura Cliente-Servidor simples, onde dois serviços são definidos em Dockerfiles separados e orquestrados manualmente em uma rede nomeada:
+
+Componente 1: Servidor
+Tecnologia: Python + Flask
+Porta: 8080
+Função: Responde requisições HTTP na raiz (/) e retorna a identificação (hostname/ID) do próprio container.
+
+Componente 2: Cliente
+Tecnologia: Alpine Linux + cURL 
+Função: Faz requisições HTTP periódicas (a cada 5 segundos) ao Servidor.
+
+# Decisões Técnicas
+1. **Separação de Preocupações:** Foram utilizados dois Dockerfiles distintos (Dockerfile.server e Dockerfile.client) para garantir que cada container 
+tenha apenas as dependências necessárias para sua função (Python para o Servidor, cURL para o Cliente).
+2. **Comunicação por Nome:** A comunicação inter-container é feita através do nome do serviço. O Cliente usa o endereço http://servidor:8080. Isso é possível porque, 
+dentro da rede Docker customizada, o Docker atua como um resolvedor de DNS, mapeando o nome do alias servidor para o IP interno do container Servidor.
+3. **Rede Customizada:** A rede customizada é essencial para que os containers possam se encontrar e se comunicar pelo nome, garantindo o isolamento da rede default do Docker.]
+
+# Explicação Detalhada do Funcionamento (Fluxo)
+O fluxo de comunicação ocorre da seguinte maneira:
+
+1. **Início do Servidor:** O container do Servidor é iniciado com o alias servidor na rede customizada. O Flask inicia o servidor web na porta interna 8080.
+2. **Início do Cliente:** O container Cliente é iniciado na mesma rede. Seu comando de inicialização (CMD) executa um loop infinito (via sh -c "while true...").
+3. **Requisição:** A cada 5 segundos, o Cliente executa o comando curl http://servidor:8080.
+4. **Resolução de Nome:** O DNS interno do Docker na rede customizada resolve o hostname servidor para o endereço IP do container Servidor.
+5. **Resposta:** O Servidor recebe a requisição, executa a função index(), e retorna a string "Olá do container ID: [hostname]".
+6. **Logs:** O Cliente recebe a resposta, imprime o conteúdo e a mensagem --- Requisicao feita --- em seus logs, comprovando a comunicação bem-sucedida.
+
+# Instruções de Execução Passo a Passo
+Siga os passos abaixo para construir as imagens, criar a rede e subir os containers:
+
+1. Pré-requisitos
+Certifique-se de ter o Docker instalado e rodando.
+
+2. Construção das Imagens
+Execute os comandos abaixo na raiz da pasta Desafio1:
+  # 1. Constrói a imagem do Servidor
+          docker build -t desafio1-server -f Dockerfile.server .
+  # 2. Constrói a imagem do Cliente
+          docker build -t desafio1-client -f Dockerfile.client .
+
+3. Criação da Rede Customizada
+Crie a rede Docker que permitirá a comunicação por nome:
+         docker network create desafio1-network
+
+4. Execução dos Containers
+A. Iniciar o Servidor
+Inicie o Servidor em modo detached (-d), conectando-o à rede e definindo o alias de serviço servidor:
+         docker run -d \
+       --name servidor-app \
+       --network desafio1-network \
+       --network-alias servidor \
+         desafio1-server
+B. Iniciar o Cliente e Monitorar Logs
+Inicie o Cliente, conectando-o à mesma rede. O container será executado em foreground para exibir os logs de requisição:
+Bash
+# O container do cliente fará requisições a cada 5 segundos
+docker run --rm \
+--name cliente-app \
+--network desafio1-network \
+desafio1-client
+
+5. Demonstração e Teste (Logs)
+Após executar o Cliente, você deve ver mensagens repetidas no terminal, confirmando que o Cliente está se comunicando com sucesso com o Servidor através do alias servidor e recebendo a resposta correta.
+
+Exemplo de log (no terminal do cliente):
+
+Ola do container ID: [ID_ALEATORIO_DO_SERVIDOR]
+--- Requisicao feita ---
+Ola do container ID: [ID_ALEATORIO_DO_SERVIDOR]
+--- Requisicao feita ---
+...
+6. Limpeza
+Após a demonstração, pare e remova os containers e a rede:
+
+Bash
+docker stop servidor-app cliente-app
+docker rm servidor-app cliente-app
+docker network rm desafio1-network
