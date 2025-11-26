@@ -52,7 +52,7 @@ Este comando constrói as imagens e inicia todos os serviços em segundo plano:
 docker-compose up -d --build
 
 2. Testar o API Gateway
-Abra o navegador e teste os seguintes endereços (note o uso da porta 8085):
+Abra o navegador e teste os seguintes endereços:
 
 Rota Raiz (Teste do Gateway):
 URL: http://localhost:8085/
