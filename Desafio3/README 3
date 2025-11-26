@@ -1,0 +1,61 @@
+# Desafio 3: Orquestração com Docker Compose (3 Serviços)
+
+## Objetivo
+O objetivo deste desafio é demonstrar a capacidade de orquestrar **três serviços** interdependentes utilizando o **Docker Compose**. A solução implementa uma arquitetura Web com persistência de dados em cache (Redis) e um *Reverse Proxy* (Nginx) como ponto de entrada.
+
+
+## Arquitetura e Solução
+
+O sistema é composto pelos seguintes serviços, todos rodando na rede interna `minha-rede-interna`:
+
+### Componentes
+
+* **`redis-server` (Redis/Cache):** Armazena o contador de visitas, garantindo a persistência do valor entre acessos.
+* **`meu-site` (Python + Flask):** Aplicação principal que lê e incrementa o contador no Redis.
+* **`nginx` (Reverse Proxy):** Ponto de entrada (porta 8081). Roteia todas as requisições para o `meu-site:5000` interno.
+
+### Decisões Técnicas
+
+1.  **Docker Compose:** Utilizado para definir e subir todos os serviços com um único comando (`docker-compose up`).
+2.  **Ordem de Inicialização (`depends_on`):** Garante que o banco (Redis) suba antes da aplicação, e a aplicação antes do Nginx.
+3.  **Isolamento:** Apenas o Nginx expõe porta para o host (`8081`). O Flask e o Redis ficam protegidos na rede interna.
+
+---
+
+## ⚙️ Explicação Detalhada do Funcionamento
+
+1.  **Acesso:** O usuário acessa `http://localhost:8081`. O Nginx recebe essa requisição.
+2.  **Roteamento:** O Nginx repassa a chamada internamente para o container da aplicação (`http://meu-site:5000`).
+3.  **Processamento:** O Flask recebe a requisição e conecta-se ao Redis (usando o hostname `redis-server`) para incrementar o contador de visitas.
+4.  **Resposta:** O número de visitas atualizado é retornado ao usuário através do Nginx.
+
+---
+
+## 🛠️ Instruções de Execução
+
+Siga os comandos abaixo no terminal, dentro da pasta `Desafio3`:
+
+### 1. Subir a Aplicação
+Este comando constrói as imagens e inicia os containers em segundo plano:
+
+```bash
+docker-compose up -d --build
+
+2. Testar o Funcionamento
+Abra o navegador e acesse o endereço abaixo. Você verá o contador de visitas:
+
+URL: http://localhost:8081
+
+Validação: Recarregue a página (F5) várias vezes. O número de visitas deve aumentar (1, 2, 3...), provando que o Redis está salvando os dados.
+
+3. Ver Logs (Opcional)
+Para ver os containers conversando entre si:
+
+Bash
+docker-compose logs -f
+
+4. Parar e Limpar
+Para encerrar os serviços e remover os containers:
+
+Bash
+docker-compose down
