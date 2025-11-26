@@ -1,0 +1,79 @@
+#  Desafio 5: Microsserviços com API Gateway
+
+##  Objetivo
+O objetivo deste desafio é implementar uma arquitetura de microsserviços utilizando o padrão **API Gateway**. A solução centraliza o acesso externo em um único ponto (Nginx), que distribui as requisições para os serviços de backend apropriados (Users e Orders).
+
+---
+
+##  Arquitetura e Solução
+
+A arquitetura é composta por um Gateway de entrada e dois microsserviços independentes, todos orquestrados via Docker Compose na rede interna `rede-gateway`.
+
+### Componentes
+
+* **`api-gateway` (Nginx):**
+    * **Função:** Ponto único de entrada. Escuta na porta interna 80 (exposta no host como **8085**).
+    * **Roteamento:** Recebe as requisições e as encaminha para os serviços internos com base na URL.
+
+* **`servico-users` (Python/Flask):**
+    * **Função:** Gerencia dados de usuários.
+    * **Acesso:** Isolado na rede interna, acessível apenas pelo Gateway via `http://servico-users:5000`.
+
+* **`servico-orders` (Python/Flask):**
+    * **Função:** Gerencia dados de pedidos.
+    * **Acesso:** Isolado na rede interna, acessível apenas pelo Gateway via `http://servico-orders:5000`.
+
+### Decisões Técnicas
+
+1.  **API Gateway Pattern:** Utilizamos o Nginx como Proxy Reverso. O cliente não sabe onde os serviços de usuários ou pedidos estão rodando; ele apenas interage com o Gateway.
+2.  **Service Discovery:** O Nginx encontra os microsserviços automaticamente usando os nomes de host definidos no Docker Compose (`servico-users` e `servico-orders`), sem precisar de IPs fixos.
+3.  **Segurança/Isolamento:** Os microsserviços de backend não expõem portas para o host, obrigando todo o tráfego a passar pelas regras do Gateway.
+
+---
+
+##  Explicação Detalhada do Funcionamento
+
+1.  **Requisição:** O cliente acessa `http://localhost:8085/users`.
+2.  **Gateway:** O container `api-gateway` recebe a chamada na porta 80.
+3.  **Roteamento (Proxy Pass):** O Nginx verifica a configuração `location /users` e encaminha a requisição internamente para `http://servico-users:5000`.
+4.  **Processamento:** O serviço de usuários processa a chamada e devolve o JSON.
+5.  **Resposta:** O Gateway recebe o JSON e o devolve ao cliente final.
+
+---
+
+##  Instruções de Execução
+
+Siga os comandos abaixo no terminal, dentro da pasta `Desafio5`:
+
+### 1. Inicialização da Arquitetura
+Este comando constrói as imagens e inicia todos os serviços em segundo plano:
+
+```bash
+docker-compose up -d --build
+
+2. Testar o API Gateway
+Abra o navegador e teste os seguintes endereços (note o uso da porta 8085):
+
+Rota Raiz (Teste do Gateway):
+URL: http://localhost:8085/
+
+Resultado: Mensagem "Ola! Eu sou o API Gateway..."
+
+Rota de Usuários:
+URL: http://localhost:8085/users
+
+Resultado: JSON com a lista de usuários (Alice, Bob).
+
+Rota de Pedidos:
+URL: http://localhost:8085/orders
+
+Resultado: JSON com a lista de pedidos (Notebook, Mouse).
+
+3. Validação de Segurança
+Tente acessar os serviços diretamente (ex: localhost:5000). Você não conseguirá, pois eles não expõem portas para fora da rede Docker. Isso comprova que o isolamento via Gateway está funcionando.
+
+4. Parar e Limpar
+Para encerrar o sistema e remover os containers:
+
+Bash
+docker-compose down
