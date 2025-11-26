@@ -1,0 +1,68 @@
+Desafio 2: Volumes e Persistência de Dados
+
+Objetivo
+Este desafio demonstra como garantir a persistência dos dados de uma aplicação containerizada utilizando Volumes Docker. O objetivo é comprovar que os dados salvos sobrevivem à remoção e recriação do container.
+
+ Arquitetura e Solução
+A solução consiste em uma aplicação CLI (Command Line Interface) em Python que simula um sistema de registro de dados, salvando-os em um arquivo de texto.
+Ponto de Persistência: O arquivo lista_nomes.txt é salvo no diretório /dados dentro do container.
+Mecanismo de Persistência: Ao executar o container, o diretório interno /dados é mapeado para um Volume Docker externo (neste caso, um Volume Nomeado), garantindo que o ciclo de vida do arquivo de dados seja independente do ciclo de vida do container.
+
+Arquivo Chave: app.py
+O script foi projetado para:
+Criar a pasta /dados se ela não existir na inicialização.
+Ler e escrever dados no caminho /dados/lista_nomes.txt.
+Funcionar como um menu interativo para simular uma aplicação de banco de dados.
+
+Explicação Detalhada do Funcionamento (Fluxo)
+Criação do Volume: Um Volume Docker nomeado (ex: dados-nomes) é criado no sistema operacional host.
+
+Montagem do Volume: No comando docker run, o Volume dados-nomes é montado no diretório /dados do container.
+Escrita de Dados: Quando o usuário escolhe a opção 1. Escrever novo nome, o app.py salva o nome no arquivo lista_nomes.txt. Como /dados é o ponto de montagem, o arquivo é fisicamente escrito no sistema de arquivos do Volume Docker no host, e não no sistema de arquivos do container.
+Prova de Persistência: Ao remover e recriar o container, mas reutilizar o mesmo Volume (dados-nomes), o novo container encontrará os dados gravados anteriormente.
+
+Instruções de Execução Passo a Passo (Prova de Persistência)
+Siga os passos abaixo para construir a imagem e provar que os dados são persistentes.
+
+1. Construção da Imagem
+Execute o comando na raiz da pasta Desafio2:
+Bash
+docker build -t desafio2-persistente .
+
+2. Prova de Persistência (Ciclo Completo)
+Passo A: Criar e Salvar Dados no Container (1ª Execução)
+Execute o container pela primeira vez, montando um volume nomeado (dados-nomes) no diretório /dados:
+
+Bash
+docker run -it --name persistencia-teste -v dados-nomes:/dados desafio2-persistente
+
+No menu, escolha a opção 1 e digite um nome (ex: Nome 1).
+Escolha a opção 2 para confirmar que o nome foi salvo.
+
+Digite Ctrl + C ou exit para sair do container.
+
+Passo B: Remover o Container (Simulando Falha)
+Remova completamente o container criado. Os dados não devem ser perdidos, pois estão no volume externo.
+
+Bash
+docker rm persistencia-teste
+
+Passo C: Recriar o Container e Ler os Dados (2ª Execução)
+Execute um novo container com outro nome (persistencia-teste-novo), mas reutilizando o Volume criado anteriormente (dados-nomes):
+
+Bash
+docker run -it --name persistencia-teste-novo -v dados-nomes:/dados desafio2-persistente
+
+No menu, escolha a opção 2. Ler nomes salvos.
+
+Resultado Esperado: O sistema deve mostrar o nome (Nome 1) que você salvou na primeira execução, provando que os dados persistem fora do container.
+
+3. Limpeza
+Para remover o volume (e os dados persistidos) e o container de teste:
+Bash
+
+docker rm persistencia-teste-novo
+
+# REMOVER O VOLUME: CUIDADO, ISSO APAGA OS DADOS SALVOS
+docker volume rm dados-nomes
+O que você achou? Podemos seguir para a análise do Desafio 3 (docker-compose.yml)?
