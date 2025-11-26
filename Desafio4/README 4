@@ -1,0 +1,66 @@
+#  Desafio 4: Microsserviços Independentes
+
+##  Objetivo
+O objetivo deste desafio é implementar uma arquitetura de **microsserviços** onde dois serviços independentes se comunicam via HTTP. A solução demonstra o desacoplamento entre o fornecimento de dados (Backend) e a exibição (Frontend).
+
+
+##  Arquitetura e Solução
+
+A solução é composta por dois microsserviços distintos, cada um com seu próprio `Dockerfile` e responsabilidade única:
+
+### Componentes
+
+* **`api-usuarios` (Backend):**
+    * **Função:** Fornece uma API REST simples que retorna uma lista de usuários em formato JSON.
+    * **Tecnologia:** Python/Flask.
+    * **Porta Interna:** 5000.
+
+* **`site-frontend` (Frontend):**
+    * **Função:** Consome os dados da API e renderiza uma página HTML formatada para o usuário final.
+    * **Tecnologia:** Python/Flask + biblioteca `requests`.
+    * **Comunicação:** Faz requisições HTTP internas para `http://api-usuarios:5000/usuarios`.
+
+### Decisões Técnicas
+
+1.  **Isolamento de Serviços:** Cada serviço possui seu próprio diretório e `Dockerfile`, garantindo que possam evoluir independentemente.
+2.  **Comunicação via HTTP:** O Frontend não acessa o banco de dados (ou lista) do Backend diretamente; ele usa a API exposta, respeitando o princípio de microsserviços.
+3.  **Rede Docker:** Ambos os serviços compartilham a rede `rede-microsservicos`, permitindo a resolução de nomes via DNS interno do Docker.
+
+---
+
+##  Explicação Detalhada do Funcionamento
+
+1.  **Requisição do Usuário:** O usuário acessa o Frontend pelo navegador (`http://localhost:8082`).
+2.  **Consumo da API:** O Frontend recebe a requisição e executa, no lado do servidor, uma chamada `GET` para o serviço `api-usuarios`.
+3.  **Resposta da API:** O serviço `api-usuarios` retorna o JSON com a lista de alunos.
+4.  **Renderização:** O Frontend processa esse JSON, gera uma lista HTML (`<ul><li>...</li></ul>`) e envia a página finalizada para o navegador do usuário.
+
+---
+
+##  Instruções de Execução
+
+Siga os comandos abaixo no terminal, dentro da pasta `Desafio4`:
+
+### 1. Inicialização dos Serviços
+Este comando constrói as imagens de ambos os serviços e inicia os containers:
+
+```bash
+docker-compose up -d --build
+
+2. Testar o Funcionamento
+Acesse o Frontend no seu navegador:
+
+URL: http://localhost:8082
+
+Validação: Você deverá ver uma página HTML com o título "Lista de Alunos (Vindo da API)" e a lista de nomes (Ana Silva, Beto Costa, etc.), comprovando que o Frontend conseguiu buscar os dados do Backend com sucesso.
+
+3. Testar a API Diretamente (Opcional)
+Se desejar ver os dados brutos (JSON) que o backend fornece:
+
+URL: http://localhost:5001/usuarios
+
+4. Parar e Limpar
+Para encerrar os serviços e remover os containers:
+
+Bash
+docker-compose down
